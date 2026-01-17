@@ -43,6 +43,18 @@
             font-size: 12px;
             color: #666;
         }
+        .header .credits {
+            font-size: 10px;
+            color: #888;
+            margin-top: 6px;
+        }
+        .header .credits a {
+            color: #1a73e8;
+            text-decoration: none;
+        }
+        .header .credits a:hover {
+            text-decoration: underline;
+        }
         .legend {
             position: absolute;
             bottom: 30px;
@@ -120,7 +132,7 @@
         }
         .controls {
             position: absolute;
-            top: 80px;
+            top: 100px;
             left: 50px;
             z-index: 1000;
             background: rgba(255, 255, 255, 0.95);
@@ -308,6 +320,7 @@
     <div class="header">
         <h1>ERA - Ecosystem Restoration Atlas</h1>
         <p>Restoration projects affecting weather, climate & precipitation</p>
+        <p class="credits">(Map by <a href="https://EcoRestorationAlliance.org" target="_blank">ERA</a>; articles courtesy of <a href="https://Mongabay.com" target="_blank">Mongabay</a>)</p>
     </div>
 
     <div class="view-toggle">
