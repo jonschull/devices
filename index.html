@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ERA - Ecosystem Restoration Atlas</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.104/Build/Cesium/Widgets/widgets.css" />
     <style>
         * {
             margin: 0;
@@ -14,9 +17,12 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
         }
-        #map {
+        #map, #globe {
             width: 100%;
             height: 100vh;
+        }
+        #globe {
+            display: none;
         }
         .header {
             position: absolute;
@@ -136,6 +142,39 @@
             width: 100%;
             margin-bottom: 8px;
         }
+        .view-toggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .view-toggle button {
+            padding: 8px 16px;
+            border: 1px solid #ccc;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .view-toggle button:first-child {
+            border-radius: 4px 0 0 4px;
+        }
+        .view-toggle button:last-child {
+            border-radius: 0 4px 4px 0;
+            border-left: none;
+        }
+        .view-toggle button.active {
+            background: #2d5a27;
+            color: white;
+            border-color: #2d5a27;
+        }
+        .view-toggle button:hover:not(.active) {
+            background: #f0f0f0;
+        }
         .stats {
             position: absolute;
             bottom: 30px;
@@ -151,14 +190,93 @@
             font-weight: bold;
             color: #2d5a27;
         }
+        /* Custom cluster styles */
+        .marker-cluster-small {
+            background-color: rgba(45, 90, 39, 0.6);
+        }
+        .marker-cluster-small div {
+            background-color: rgba(45, 90, 39, 0.8);
+        }
+        .marker-cluster-medium {
+            background-color: rgba(21, 101, 192, 0.6);
+        }
+        .marker-cluster-medium div {
+            background-color: rgba(21, 101, 192, 0.8);
+        }
+        .marker-cluster-large {
+            background-color: rgba(106, 27, 154, 0.6);
+        }
+        .marker-cluster-large div {
+            background-color: rgba(106, 27, 154, 0.8);
+        }
+        .marker-cluster {
+            background-clip: padding-box;
+            border-radius: 20px;
+        }
+        .marker-cluster div {
+            width: 30px;
+            height: 30px;
+            margin-left: 5px;
+            margin-top: 5px;
+            text-align: center;
+            border-radius: 15px;
+            font: 12px "Helvetica Neue", Arial, Helvetica, sans-serif;
+            color: white;
+            line-height: 30px;
+        }
+        .marker-cluster span {
+            line-height: 30px;
+        }
+        /* Globe info box */
+        .globe-info {
+            position: absolute;
+            bottom: 100px;
+            left: 50px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            font-size: 12px;
+            max-width: 350px;
+            display: none;
+        }
+        .globe-info h3 {
+            color: #2d5a27;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+        .globe-info p {
+            color: #555;
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+        .globe-info a {
+            color: #1a73e8;
+            text-decoration: none;
+        }
+        .globe-info .close-btn {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            cursor: pointer;
+            color: #999;
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
     <div id="map"></div>
+    <div id="globe"></div>
 
     <div class="header">
         <h1>ERA - Ecosystem Restoration Atlas</h1>
         <p>Restoration projects affecting weather, climate & precipitation</p>
+    </div>
+
+    <div class="view-toggle">
+        <button id="mapViewBtn" class="active">Map View</button>
+        <button id="globeViewBtn">Globe View</button>
     </div>
 
     <div class="controls">
@@ -177,8 +295,9 @@
             <option value="precipitation">Precipitation/Rainfall</option>
             <option value="water">Water Cycle/Retention</option>
             <option value="flood">Flood Control</option>
-            <option value="drought">Drought Mitigation</option>
+            <option value="drought">Drought/Desertification</option>
             <option value="carbon">Carbon/Climate</option>
+            <option value="storm">Storm/Coastal Protection</option>
         </select>
     </div>
 
@@ -198,11 +317,15 @@
         </div>
         <div class="legend-item">
             <div class="legend-color" style="background: #ef6c00;"></div>
-            <span>Drought Mitigation</span>
+            <span>Drought/Desert</span>
         </div>
         <div class="legend-item">
             <div class="legend-color" style="background: #6a1b9a;"></div>
             <span>Carbon/Climate</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #c62828;"></div>
+            <span>Storm Protection</span>
         </div>
     </div>
 
@@ -210,9 +333,24 @@
         Showing <span id="visibleCount">0</span> of <span id="totalCount">0</span> stories
     </div>
 
+    <div class="globe-info" id="globeInfo">
+        <span class="close-btn" onclick="document.getElementById('globeInfo').style.display='none'">&times;</span>
+        <h3 id="globeInfoTitle"></h3>
+        <p id="globeInfoDesc"></p>
+        <a id="globeInfoLink" href="#" target="_blank">Read more</a>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.104/Build/Cesium/Cesium.js"></script>
     <script>
-        // Initialize map
+        // State
+        let allStories = [];
+        let currentView = 'map';
+        let cesiumViewer = null;
+        let cesiumEntities = [];
+
+        // Initialize Leaflet map
         const map = L.map('map', {
             center: [20, 0],
             zoom: 2,
@@ -220,15 +358,13 @@
             maxZoom: 18
         });
 
-        // ESRI World Imagery (satellite) layer
+        // Tile layers
         const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             attribution: 'Tiles &copy; Esri'
         });
-
         const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         });
-
         const topo = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
             attribution: 'Tiles &copy; Esri'
         });
@@ -242,18 +378,19 @@
             water: '#00838f',
             flood: '#2e7d32',
             drought: '#ef6c00',
-            carbon: '#6a1b9a'
+            carbon: '#6a1b9a',
+            storm: '#c62828'
         };
 
-        // Map climate_impact values to color categories
         function getClimateCategory(impact) {
             if (!impact) return 'water';
             impact = impact.toLowerCase();
             if (impact.includes('precipitation') || impact.includes('rainfall') || impact.includes('rain')) return 'precipitation';
             if (impact.includes('flood') || impact.includes('erosion')) return 'flood';
-            if (impact.includes('drought') || impact.includes('dry')) return 'drought';
+            if (impact.includes('drought') || impact.includes('desert') || impact.includes('dry')) return 'drought';
+            if (impact.includes('storm') || impact.includes('cyclone') || impact.includes('hurricane') || impact.includes('typhoon') || impact.includes('tsunami') || impact.includes('coastal')) return 'storm';
             if (impact.includes('carbon') || impact.includes('climate') && !impact.includes('water')) return 'carbon';
-            return 'water'; // water_cycle, water_retention, etc.
+            return 'water';
         }
 
         function formatClimateImpact(impact) {
@@ -276,12 +413,11 @@
             });
         }
 
-        // Parse CSV
+        // CSV parsing
         function parseCSV(text) {
             const lines = text.trim().split('\n');
             const headers = parseCSVLine(lines[0]);
             const stories = [];
-
             for (let i = 1; i < lines.length; i++) {
                 const values = parseCSVLine(lines[i]);
                 if (values.length === headers.length) {
@@ -289,7 +425,6 @@
                     headers.forEach((header, index) => {
                         story[header] = values[index];
                     });
-                    // Convert lat/lng to numbers
                     story.lat = parseFloat(story.lat);
                     story.lng = parseFloat(story.lng);
                     story.id = parseInt(story.id);
@@ -303,7 +438,6 @@
             const result = [];
             let current = '';
             let inQuotes = false;
-
             for (let i = 0; i < line.length; i++) {
                 const char = line[i];
                 if (char === '"') {
@@ -319,23 +453,39 @@
             return result;
         }
 
-        let allStories = [];
-        let markers = [];
-        const markerGroup = L.layerGroup().addTo(map);
+        // Marker cluster group
+        const markers = L.markerClusterGroup({
+            chunkedLoading: true,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            maxClusterRadius: 50,
+            iconCreateFunction: function(cluster) {
+                const count = cluster.getChildCount();
+                let size = 'small';
+                if (count > 50) size = 'large';
+                else if (count > 20) size = 'medium';
+                return L.divIcon({
+                    html: '<div><span>' + count + '</span></div>',
+                    className: 'marker-cluster marker-cluster-' + size,
+                    iconSize: L.point(40, 40)
+                });
+            }
+        });
+        map.addLayer(markers);
+
+        let allMarkers = [];
 
         function addMarkers(stories) {
-            markerGroup.clearLayers();
-            markers = [];
+            markers.clearLayers();
+            allMarkers = [];
 
             stories.forEach(story => {
-                // Skip global studies with 0,0 coordinates
                 if (story.lat === 0 && story.lng === 0) return;
 
                 const marker = L.marker([story.lat, story.lng], {
                     icon: createIcon(story.climate_impact)
                 });
 
-                const climateCategory = getClimateCategory(story.climate_impact);
                 const popupContent = `
                     <div class="popup-content">
                         <span class="category">${story.category}</span>
@@ -349,15 +499,16 @@
 
                 marker.bindPopup(popupContent);
                 marker.storyData = story;
-                markers.push(marker);
-                markerGroup.addLayer(marker);
+                allMarkers.push(marker);
+                markers.addLayer(marker);
             });
 
             updateStats();
         }
 
         function updateStats() {
-            document.getElementById('visibleCount').textContent = markerGroup.getLayers().length;
+            const visibleCount = markers.getLayers().length;
+            document.getElementById('visibleCount').textContent = visibleCount;
             document.getElementById('totalCount').textContent = allStories.filter(s => s.lat !== 0 || s.lng !== 0).length;
         }
 
@@ -365,9 +516,9 @@
             const category = document.getElementById('categoryFilter').value;
             const climate = document.getElementById('climateFilter').value;
 
-            markerGroup.clearLayers();
+            markers.clearLayers();
 
-            markers.forEach(marker => {
+            allMarkers.forEach(marker => {
                 const story = marker.storyData;
                 const climateCategory = getClimateCategory(story.climate_impact);
 
@@ -375,14 +526,127 @@
                 const climateMatch = climate === 'all' || climateCategory === climate;
 
                 if (categoryMatch && climateMatch) {
-                    markerGroup.addLayer(marker);
+                    markers.addLayer(marker);
                 }
             });
 
             updateStats();
+
+            // Also update globe if active
+            if (currentView === 'globe' && cesiumViewer) {
+                updateGlobeMarkers();
+            }
         }
 
-        // Load CSV and initialize
+        // Globe view with Cesium
+        function initGlobe() {
+            if (cesiumViewer) return;
+
+            // Use default Ion access (or set your own token)
+            Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI0ZjY0YjY0ZS1iMjFhLTRkMzMtYmZlOC0yNzM0OWNlOTQ3NmUiLCJpZCI6MjU5LCJpYXQiOjE2OTQwNTUxNjZ9.KKp3bYlPpPdMZkMmRz5YQiNJVr7N4y-dO9F6E7U0iOA';
+
+            cesiumViewer = new Cesium.Viewer('globe', {
+                terrainProvider: Cesium.createWorldTerrain(),
+                baseLayerPicker: false,
+                geocoder: false,
+                homeButton: false,
+                sceneModePicker: false,
+                navigationHelpButton: false,
+                animation: false,
+                timeline: false,
+                fullscreenButton: false,
+                selectionIndicator: false,
+                infoBox: false
+            });
+
+            // Add imagery
+            cesiumViewer.imageryLayers.addImageryProvider(
+                new Cesium.IonImageryProvider({ assetId: 2 })
+            );
+
+            // Click handler
+            const handler = new Cesium.ScreenSpaceEventHandler(cesiumViewer.scene.canvas);
+            handler.setInputAction(function(click) {
+                const pickedObject = cesiumViewer.scene.pick(click.position);
+                if (Cesium.defined(pickedObject) && pickedObject.id && pickedObject.id.storyData) {
+                    showGlobeInfo(pickedObject.id.storyData);
+                }
+            }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+            updateGlobeMarkers();
+        }
+
+        function updateGlobeMarkers() {
+            if (!cesiumViewer) return;
+
+            // Remove old entities
+            cesiumEntities.forEach(e => cesiumViewer.entities.remove(e));
+            cesiumEntities = [];
+
+            const category = document.getElementById('categoryFilter').value;
+            const climate = document.getElementById('climateFilter').value;
+
+            allStories.forEach(story => {
+                if (story.lat === 0 && story.lng === 0) return;
+
+                const climateCategory = getClimateCategory(story.climate_impact);
+                const categoryMatch = category === 'all' || story.category === category;
+                const climateMatch = climate === 'all' || climateCategory === climate;
+
+                if (!categoryMatch || !climateMatch) return;
+
+                const color = climateColors[climateCategory] || '#1565c0';
+                const cesiumColor = Cesium.Color.fromCssColorString(color);
+
+                const entity = cesiumViewer.entities.add({
+                    position: Cesium.Cartesian3.fromDegrees(story.lng, story.lat),
+                    point: {
+                        pixelSize: 10,
+                        color: cesiumColor,
+                        outlineColor: Cesium.Color.WHITE,
+                        outlineWidth: 2,
+                        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+                    },
+                    storyData: story
+                });
+
+                cesiumEntities.push(entity);
+            });
+        }
+
+        function showGlobeInfo(story) {
+            document.getElementById('globeInfoTitle').textContent = story.title;
+            document.getElementById('globeInfoDesc').textContent = story.description;
+            document.getElementById('globeInfoLink').href = story.url;
+            document.getElementById('globeInfo').style.display = 'block';
+        }
+
+        // View toggle
+        document.getElementById('mapViewBtn').addEventListener('click', function() {
+            if (currentView === 'map') return;
+            currentView = 'map';
+            document.getElementById('map').style.display = 'block';
+            document.getElementById('globe').style.display = 'none';
+            document.getElementById('globeInfo').style.display = 'none';
+            this.classList.add('active');
+            document.getElementById('globeViewBtn').classList.remove('active');
+            map.invalidateSize();
+        });
+
+        document.getElementById('globeViewBtn').addEventListener('click', function() {
+            if (currentView === 'globe') return;
+            currentView = 'globe';
+            document.getElementById('map').style.display = 'none';
+            document.getElementById('globe').style.display = 'block';
+            this.classList.add('active');
+            document.getElementById('mapViewBtn').classList.remove('active');
+            initGlobe();
+        });
+
+        document.getElementById('categoryFilter').addEventListener('change', filterMarkers);
+        document.getElementById('climateFilter').addEventListener('change', filterMarkers);
+
+        // Initialize
         async function init() {
             try {
                 const response = await fetch('restoration_climate_stories.csv');
@@ -392,13 +656,9 @@
                 console.log(`Loaded ${allStories.length} stories from CSV`);
             } catch (error) {
                 console.error('Error loading CSV:', error);
-                // Fallback message
-                document.querySelector('.stats').innerHTML = 'Error loading data. Make sure restoration_climate_stories.csv exists.';
+                document.querySelector('.stats').innerHTML = 'Error loading data.';
             }
         }
-
-        document.getElementById('categoryFilter').addEventListener('change', filterMarkers);
-        document.getElementById('climateFilter').addEventListener('change', filterMarkers);
 
         init();
     </script>
