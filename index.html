@@ -542,10 +542,10 @@
         function initGlobe() {
             if (cesiumViewer) return;
 
-            // Use OpenStreetMap tiles (no token required)
+            // Use ESRI World Imagery (satellite) - same as 2D map, no token required
             cesiumViewer = new Cesium.Viewer('globe', {
-                imageryProvider: new Cesium.OpenStreetMapImageryProvider({
-                    url: 'https://a.tile.openstreetmap.org/'
+                imageryProvider: new Cesium.ArcGisMapServerImageryProvider({
+                    url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer'
                 }),
                 baseLayerPicker: false,
                 geocoder: false,
