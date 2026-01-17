@@ -263,11 +263,47 @@
             color: #999;
             font-size: 16px;
         }
+        /* Globe zoom controls */
+        .globe-zoom {
+            position: absolute;
+            top: 80px;
+            right: 10px;
+            z-index: 1000;
+            display: none;
+        }
+        .globe-zoom button {
+            display: block;
+            width: 30px;
+            height: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border: 2px solid rgba(0,0,0,0.2);
+            background: white;
+            color: #333;
+            cursor: pointer;
+            line-height: 26px;
+            text-align: center;
+        }
+        .globe-zoom button:first-child {
+            border-radius: 4px 4px 0 0;
+            border-bottom: 1px solid #ccc;
+        }
+        .globe-zoom button:last-child {
+            border-radius: 0 0 4px 4px;
+        }
+        .globe-zoom button:hover {
+            background: #f4f4f4;
+        }
     </style>
 </head>
 <body>
     <div id="map"></div>
     <div id="globe"></div>
+
+    <div class="globe-zoom" id="globeZoom">
+        <button id="globeZoomIn" title="Zoom in">+</button>
+        <button id="globeZoomOut" title="Zoom out">−</button>
+    </div>
 
     <div class="header">
         <h1>ERA - Ecosystem Restoration Atlas</h1>
@@ -623,6 +659,7 @@
             document.getElementById('map').style.display = 'block';
             document.getElementById('globe').style.display = 'none';
             document.getElementById('globeInfo').style.display = 'none';
+            document.getElementById('globeZoom').style.display = 'none';
             this.classList.add('active');
             document.getElementById('globeViewBtn').classList.remove('active');
             map.invalidateSize();
@@ -633,9 +670,23 @@
             currentView = 'globe';
             document.getElementById('map').style.display = 'none';
             document.getElementById('globe').style.display = 'block';
+            document.getElementById('globeZoom').style.display = 'block';
             this.classList.add('active');
             document.getElementById('mapViewBtn').classList.remove('active');
             initGlobe();
+        });
+
+        // Globe zoom controls
+        document.getElementById('globeZoomIn').addEventListener('click', function() {
+            if (cesiumViewer) {
+                cesiumViewer.camera.zoomIn(cesiumViewer.camera.positionCartographic.height * 0.5);
+            }
+        });
+
+        document.getElementById('globeZoomOut').addEventListener('click', function() {
+            if (cesiumViewer) {
+                cesiumViewer.camera.zoomOut(cesiumViewer.camera.positionCartographic.height * 0.5);
+            }
         });
 
         document.getElementById('categoryFilter').addEventListener('change', filterMarkers);
