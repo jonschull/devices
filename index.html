@@ -542,11 +542,11 @@
         function initGlobe() {
             if (cesiumViewer) return;
 
-            // Use default Ion access (or set your own token)
-            Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI0ZjY0YjY0ZS1iMjFhLTRkMzMtYmZlOC0yNzM0OWNlOTQ3NmUiLCJpZCI6MjU5LCJpYXQiOjE2OTQwNTUxNjZ9.KKp3bYlPpPdMZkMmRz5YQiNJVr7N4y-dO9F6E7U0iOA';
-
+            // Use OpenStreetMap tiles (no token required)
             cesiumViewer = new Cesium.Viewer('globe', {
-                terrainProvider: Cesium.createWorldTerrain(),
+                imageryProvider: new Cesium.OpenStreetMapImageryProvider({
+                    url: 'https://a.tile.openstreetmap.org/'
+                }),
                 baseLayerPicker: false,
                 geocoder: false,
                 homeButton: false,
@@ -558,11 +558,6 @@
                 selectionIndicator: false,
                 infoBox: false
             });
-
-            // Add imagery
-            cesiumViewer.imageryLayers.addImageryProvider(
-                new Cesium.IonImageryProvider({ assetId: 2 })
-            );
 
             // Click handler
             const handler = new Cesium.ScreenSpaceEventHandler(cesiumViewer.scene.canvas);
