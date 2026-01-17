@@ -1,51 +1,100 @@
-# Global Restoration Stories Map
+# ERA - Ecosystem Restoration Atlas
 
-An interactive world map showcasing successful ecosystem restoration projects worldwide, featuring stories from Mongabay and other conservation sources.
+An interactive world map showcasing successful ecosystem restoration projects that affect weather, climate, and precipitation. Features 500 stories from Mongabay and other conservation sources.
+
+**Live site:** [https://jonschull.github.io/devices/](https://jonschull.github.io/devices/)
 
 ## Features
 
-- Interactive satellite map (ESRI World Imagery) with multiple base layer options
-- 18 curated restoration success stories across 5 categories:
-  - Forest Restoration
+- **Dual View Modes:**
+  - 2D Map (Leaflet.js with ESRI satellite imagery)
+  - 3D Globe (Cesium.js with satellite imagery)
+- **500 curated restoration stories** across 4 ecosystem types:
+  - Forest
+  - Wetland
+  - Grassland
   - Marine/Coastal
-  - Wetlands
-  - Grasslands
-  - Wildlife Recovery
-- Category filtering to focus on specific restoration types
-- Click markers to view story details, descriptions, and links to full articles
-- Responsive design works on desktop and mobile
+- **Climate impact filtering** by:
+  - Precipitation/Rainfall
+  - Water Cycle/Retention
+  - Flood Control
+  - Drought/Desertification
+  - Carbon/Climate
+  - Storm/Coastal Protection
+- **Marker clustering** to handle dense story regions without cluttering the UI
+- **Global coverage** including 100+ indigenous-led restoration projects
+
+## Architecture & Data Flow
+
+```
+┌─────────────────────────────────┐
+│  restoration_climate_stories.csv │  ← 500 stories with lat/lng
+└─────────────┬───────────────────┘
+              │ fetch() on page load
+              ▼
+┌─────────────────────────────────┐
+│  parseCSV()                      │  ← Converts to JS objects
+└─────────────┬───────────────────┘
+              │
+              ▼
+┌─────────────────────────────────┐
+│  allStories[]                    │  ← In-memory array
+└─────────────┬───────────────────┘
+              │
+      ┌───────┴───────┐
+      ▼               ▼
+┌───────────┐   ┌───────────┐
+│  Map View │   │Globe View │
+│  Leaflet  │   │  Cesium   │
+│  +Cluster │   │           │
+└───────────┘   └───────────┘
+```
+
+### Key Components
+
+1. **Data Source** (`restoration_climate_stories.csv`)
+   - CSV format with columns: id, title, description, location, lat, lng, category, climate_impact, date, source, url
+   - Loaded via fetch() on page initialization
+
+2. **Map View** (Leaflet.js)
+   - Uses MarkerClusterGroup to group nearby markers
+   - ESRI World Imagery satellite tiles
+   - Popups show story details on click
+
+3. **Globe View** (Cesium.js)
+   - 3D Earth with ESRI satellite imagery
+   - Point entities for each story
+   - Info panel shows story details on click
+
+4. **Filtering**
+   - Dropdown filters for ecosystem type and climate impact
+   - Re-renders markers on both views when filters change
 
 ## Usage
 
 ### View the Map
 
-Simply open `index.html` in any modern web browser. No server required.
+Open `index.html` in any modern web browser, or visit the GitHub Pages site.
 
 ### Host on GitHub Pages
 
 1. Push this repository to GitHub
 2. Go to Settings > Pages
-3. Select "Deploy from a branch" and choose `main`
+3. Select "Deploy from a branch" and choose your branch
 4. Your map will be available at `https://[username].github.io/[repo-name]/`
 
 ## Adding Stories
 
-Edit `stories.json` to add new restoration stories. Each story requires:
+Edit `restoration_climate_stories.csv` to add new stories. Each row requires:
 
-```json
-{
-  "id": 19,
-  "title": "Story Title",
-  "description": "Brief description of the restoration project and its success.",
-  "location": "Location Name",
-  "lat": 0.0000,
-  "lng": 0.0000,
-  "category": "forest|marine|wetland|grassland|wildlife",
-  "date": "YYYY-MM-DD",
-  "source": "Source Name",
-  "url": "https://link-to-full-story.com"
-}
+```csv
+id,title,description,location,lat,lng,category,climate_impact,date,source,url
+501,"Story Title","Description of the project",Location Name,12.345,-67.890,forest,water_retention,2024-01-15,Mongabay,https://...
 ```
+
+**Categories:** forest, wetland, grassland, marine
+
+**Climate impacts:** precipitation, water_retention, flood_control, drought_reversal, carbon_storage, cyclone_protection, indigenous_restoration
 
 ## Data Sources
 
@@ -60,9 +109,16 @@ For live data integration, Mongabay offers topic-based RSS feeds:
 
 ## Technologies
 
-- [Leaflet.js](https://leafletjs.com/) - Open-source mapping library
-- [ESRI World Imagery](https://www.arcgis.com/) - Satellite tile layer
+- [Leaflet.js](https://leafletjs.com/) - 2D mapping library
+- [Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster) - Marker clustering
+- [Cesium.js](https://cesium.com/) - 3D globe visualization
+- [ESRI World Imagery](https://www.arcgis.com/) - Satellite tiles
 - Vanilla JavaScript - No build tools required
+
+## Credits
+
+- Map by [Eco Restoration Alliance](https://EcoRestorationAlliance.org)
+- Articles courtesy of [Mongabay](https://Mongabay.com)
 
 ## License
 
