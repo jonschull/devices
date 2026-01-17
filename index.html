@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Restoration Stories Map</title>
+    <title>ERA - Ecosystem Restoration Atlas</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * {
@@ -47,6 +47,7 @@
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.2);
             font-size: 12px;
+            max-width: 200px;
         }
         .legend h4 {
             margin-bottom: 8px;
@@ -62,9 +63,10 @@
             height: 12px;
             border-radius: 50%;
             margin-right: 8px;
+            flex-shrink: 0;
         }
         .leaflet-popup-content {
-            max-width: 300px;
+            max-width: 320px;
         }
         .popup-content h3 {
             color: #2d5a27;
@@ -98,19 +100,17 @@
             padding: 2px 8px;
             border-radius: 12px;
             font-size: 10px;
+            margin-right: 4px;
             margin-bottom: 8px;
         }
-        .loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 1000;
-            background: white;
-            padding: 20px 40px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            display: none;
+        .popup-content .climate-tag {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            margin-bottom: 8px;
         }
         .controls {
             position: absolute;
@@ -118,15 +118,38 @@
             left: 50px;
             z-index: 1000;
             background: rgba(255, 255, 255, 0.95);
-            padding: 10px;
+            padding: 12px;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .controls label {
+            display: block;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 4px;
         }
         .controls select {
             padding: 6px 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
             font-size: 12px;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+        .stats {
+            position: absolute;
+            bottom: 30px;
+            left: 50px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            font-size: 12px;
+        }
+        .stats span {
+            font-weight: bold;
+            color: #2d5a27;
         }
     </style>
 </head>
@@ -134,50 +157,62 @@
     <div id="map"></div>
 
     <div class="header">
-        <h1>Global Restoration Stories</h1>
-        <p>Successful ecosystem restoration projects worldwide</p>
+        <h1>ERA - Ecosystem Restoration Atlas</h1>
+        <p>Restoration projects affecting weather, climate & precipitation</p>
     </div>
 
     <div class="controls">
+        <label>Ecosystem Type</label>
         <select id="categoryFilter">
-            <option value="all">All Categories</option>
-            <option value="forest">Forest Restoration</option>
+            <option value="all">All Types</option>
+            <option value="forest">Forest</option>
+            <option value="wetland">Wetland</option>
+            <option value="grassland">Grassland</option>
             <option value="marine">Marine/Coastal</option>
-            <option value="wetland">Wetlands</option>
-            <option value="grassland">Grasslands</option>
-            <option value="wildlife">Wildlife Recovery</option>
+        </select>
+
+        <label>Climate Impact</label>
+        <select id="climateFilter">
+            <option value="all">All Impacts</option>
+            <option value="precipitation">Precipitation/Rainfall</option>
+            <option value="water">Water Cycle/Retention</option>
+            <option value="flood">Flood Control</option>
+            <option value="drought">Drought Mitigation</option>
+            <option value="carbon">Carbon/Climate</option>
         </select>
     </div>
 
     <div class="legend">
-        <h4>Project Types</h4>
+        <h4>Climate Impacts</h4>
         <div class="legend-item">
-            <div class="legend-color" style="background: #228b22;"></div>
-            <span>Forest Restoration</span>
+            <div class="legend-color" style="background: #1565c0;"></div>
+            <span>Precipitation</span>
         </div>
         <div class="legend-item">
-            <div class="legend-color" style="background: #1e90ff;"></div>
-            <span>Marine/Coastal</span>
+            <div class="legend-color" style="background: #00838f;"></div>
+            <span>Water Cycle</span>
         </div>
         <div class="legend-item">
-            <div class="legend-color" style="background: #20b2aa;"></div>
-            <span>Wetlands</span>
+            <div class="legend-color" style="background: #2e7d32;"></div>
+            <span>Flood Control</span>
         </div>
         <div class="legend-item">
-            <div class="legend-color" style="background: #daa520;"></div>
-            <span>Grasslands</span>
+            <div class="legend-color" style="background: #ef6c00;"></div>
+            <span>Drought Mitigation</span>
         </div>
         <div class="legend-item">
-            <div class="legend-color" style="background: #8b4513;"></div>
-            <span>Wildlife Recovery</span>
+            <div class="legend-color" style="background: #6a1b9a;"></div>
+            <span>Carbon/Climate</span>
         </div>
     </div>
 
-    <div class="loading" id="loading">Loading stories...</div>
+    <div class="stats">
+        Showing <span id="visibleCount">0</span> of <span id="totalCount">0</span> stories
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Initialize map with satellite view
+        // Initialize map
         const map = L.map('map', {
             center: [20, 0],
             zoom: 2,
@@ -187,42 +222,48 @@
 
         // ESRI World Imagery (satellite) layer
         const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+            attribution: 'Tiles &copy; Esri'
         });
 
-        // OpenStreetMap layer (as alternative)
         const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         });
 
-        // ESRI World Topo layer
         const topo = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
             attribution: 'Tiles &copy; Esri'
         });
 
-        // Add satellite as default
         satellite.addTo(map);
+        L.control.layers({ "Satellite": satellite, "Topographic": topo, "Street Map": osm }).addTo(map);
 
-        // Layer control
-        const baseMaps = {
-            "Satellite": satellite,
-            "Topographic": topo,
-            "Street Map": osm
-        };
-        L.control.layers(baseMaps).addTo(map);
-
-        // Category colors
-        const categoryColors = {
-            forest: '#228b22',
-            marine: '#1e90ff',
-            wetland: '#20b2aa',
-            grassland: '#daa520',
-            wildlife: '#8b4513'
+        // Climate impact colors
+        const climateColors = {
+            precipitation: '#1565c0',
+            water: '#00838f',
+            flood: '#2e7d32',
+            drought: '#ef6c00',
+            carbon: '#6a1b9a'
         };
 
-        // Create custom icon
-        function createIcon(category) {
-            const color = categoryColors[category] || '#228b22';
+        // Map climate_impact values to color categories
+        function getClimateCategory(impact) {
+            if (!impact) return 'water';
+            impact = impact.toLowerCase();
+            if (impact.includes('precipitation') || impact.includes('rainfall') || impact.includes('rain')) return 'precipitation';
+            if (impact.includes('flood') || impact.includes('erosion')) return 'flood';
+            if (impact.includes('drought') || impact.includes('dry')) return 'drought';
+            if (impact.includes('carbon') || impact.includes('climate') && !impact.includes('water')) return 'carbon';
+            return 'water'; // water_cycle, water_retention, etc.
+        }
+
+        function formatClimateImpact(impact) {
+            if (!impact) return 'Climate Impact';
+            return impact.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        function createIcon(climateImpact) {
+            const category = getClimateCategory(climateImpact);
+            const color = climateColors[category] || '#1565c0';
             return L.divIcon({
                 className: 'custom-marker',
                 html: `<svg width="24" height="36" viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg">
@@ -235,243 +276,70 @@
             });
         }
 
-        // Sample restoration stories data (with real Mongabay-sourced examples)
-        const restorationStories = [
-            {
-                id: 1,
-                title: "Atlantic Forest Restoration in Brazil",
-                description: "The Atlantic Forest Restoration Pact aims to restore 15 million hectares of degraded land by 2050. Local communities and NGOs have already restored over 700,000 hectares using native species.",
-                location: "Atlantic Forest, Brazil",
-                lat: -23.5505,
-                lng: -46.6333,
-                category: "forest",
-                date: "2024-03-15",
-                source: "Mongabay",
-                url: "https://news.mongabay.com/list/atlantic-forest/"
-            },
-            {
-                id: 2,
-                title: "Great Green Wall Progress in Senegal",
-                description: "Senegal has planted over 12 million trees as part of the Great Green Wall initiative, creating new livelihoods and reversing desertification in the Sahel region.",
-                location: "Sahel Region, Senegal",
-                lat: 14.4974,
-                lng: -14.4524,
-                category: "forest",
-                date: "2024-02-20",
-                source: "Mongabay",
-                url: "https://news.mongabay.com/list/great-green-wall/"
-            },
-            {
-                id: 3,
-                title: "Coral Triangle Marine Restoration",
-                description: "Community-led coral restoration in Indonesia's Raja Ampat has seen fish populations increase by 250% in protected areas, showcasing successful marine conservation.",
-                location: "Raja Ampat, Indonesia",
-                lat: -0.5000,
-                lng: 130.5000,
-                category: "marine",
-                date: "2024-01-10",
-                source: "Mongabay",
-                url: "https://news.mongabay.com/list/coral-reefs/"
-            },
-            {
-                id: 4,
-                title: "Mangrove Revival in Bangladesh",
-                description: "The Sundarbans restoration project has planted 2 million mangrove trees, protecting coastal communities from cyclones while restoring critical tiger habitat.",
-                location: "Sundarbans, Bangladesh",
-                lat: 21.9497,
-                lng: 89.1833,
-                category: "marine",
-                date: "2024-04-05",
-                source: "Mongabay",
-                url: "https://news.mongabay.com/list/mangroves/"
-            },
-            {
-                id: 5,
-                title: "Yellowstone Wolf Reintroduction Success",
-                description: "25 years after wolf reintroduction, Yellowstone has seen cascading ecosystem recovery including riverbank restoration and elk population balance.",
-                location: "Yellowstone, USA",
-                lat: 44.4280,
-                lng: -110.5885,
-                category: "wildlife",
-                date: "2023-11-15",
-                source: "Mongabay",
-                url: "https://news.mongabay.com/list/rewilding/"
-            },
-            {
-                id: 6,
-                title: "Scottish Highlands Rewilding",
-                description: "The Cairngorms Connect project is rewilding 600 square kilometers, removing fences and restoring native Caledonian pine forest and peatlands.",
-                location: "Cairngorms, Scotland",
-                lat: 57.0000,
-                lng: -3.7500,
-                category: "forest",
-                date: "2024-01-25",
-                source: "Mongabay",
-                url: "https://news.mongabay.com/list/rewilding/"
-            },
-            {
-                id: 7,
-                title: "Wetland Restoration in China's Yellow River Delta",
-                description: "China has restored over 100,000 hectares of wetlands in the Yellow River Delta, bringing back endangered bird species and improving water quality.",
-                location: "Yellow River Delta, China",
-                lat: 37.7500,
-                lng: 119.1500,
-                category: "wetland",
-                date: "2024-02-10",
-                source: "Mongabay",
-                url: "https://news.mongabay.com/list/wetlands/"
-            },
-            {
-                id: 8,
-                title: "Iberian Lynx Recovery in Spain",
-                description: "From just 94 individuals in 2002 to over 1,000 today, the Iberian lynx recovery program is one of the most successful wild cat conservation efforts ever.",
-                location: "Andalusia, Spain",
-                lat: 37.5443,
-                lng: -4.7278,
-                category: "wildlife",
-                date: "2023-12-05",
-                source: "Mongabay",
-                url: "https://news.mongabay.com/list/endangered-species/"
-            },
-            {
-                id: 9,
-                title: "Loess Plateau Restoration in China",
-                description: "One of the largest ecosystem restoration projects in history, transforming 35,000 square kilometers of degraded land into productive terraces and forests.",
-                location: "Loess Plateau, China",
-                lat: 36.0000,
-                lng: 109.0000,
-                category: "grassland",
-                date: "2024-03-01",
-                source: "Mongabay",
-                url: "https://news.mongabay.com/list/china/"
-            },
-            {
-                id: 10,
-                title: "Costa Rica's Forest Recovery",
-                description: "Costa Rica doubled its forest cover from 26% to 52% since the 1980s through payment for ecosystem services and protected area expansion.",
-                location: "Costa Rica",
-                lat: 9.7489,
-                lng: -83.7534,
-                category: "forest",
-                date: "2023-10-20",
-                source: "Mongabay",
-                url: "https://news.mongabay.com/list/costa-rica/"
-            },
-            {
-                id: 11,
-                title: "Gorongosa National Park Restoration",
-                description: "After civil war devastation, Gorongosa has seen wildlife populations recover dramatically, with elephant numbers growing from 200 to over 600.",
-                location: "Gorongosa, Mozambique",
-                lat: -18.9667,
-                lng: 34.3500,
-                category: "wildlife",
-                date: "2024-02-28",
-                source: "Mongabay",
-                url: "https://news.mongabay.com/list/mozambique/"
-            },
-            {
-                id: 12,
-                title: "Seagrass Meadows Restoration in UK",
-                description: "Project Seagrass has planted over 1 million seagrass seeds along the Welsh coast, creating vital carbon sinks and fish nurseries.",
-                location: "Pembrokeshire, Wales",
-                lat: 51.6700,
-                lng: -4.9100,
-                category: "marine",
-                date: "2024-01-15",
-                source: "Mongabay",
-                url: "https://news.mongabay.com/list/oceans/"
-            },
-            {
-                id: 13,
-                title: "Everglades Restoration Progress",
-                description: "The $23 billion Comprehensive Everglades Restoration Plan is showing results with improved water flow and wildlife recovery in America's largest subtropical wilderness.",
-                location: "Florida Everglades, USA",
-                lat: 25.2866,
-                lng: -80.8987,
-                category: "wetland",
-                date: "2024-03-20",
-                source: "Mongabay",
-                url: "https://news.mongabay.com/list/wetlands/"
-            },
-            {
-                id: 14,
-                title: "Borneo Orangutan Habitat Corridors",
-                description: "Conservation groups have created wildlife corridors connecting fragmented forests, allowing orangutan populations to intermingle and access larger territories.",
-                location: "Borneo, Indonesia",
-                lat: 0.9619,
-                lng: 114.5548,
-                category: "forest",
-                date: "2024-04-10",
-                source: "Mongabay",
-                url: "https://news.mongabay.com/list/orangutans/"
-            },
-            {
-                id: 15,
-                title: "Patagonian Grasslands Recovery",
-                description: "Rewilding Argentina is reintroducing jaguars, giant anteaters, and other native species to restore the Iberá Wetlands ecosystem.",
-                location: "Iberá Wetlands, Argentina",
-                lat: -28.5000,
-                lng: -57.1667,
-                category: "grassland",
-                date: "2023-09-15",
-                source: "Mongabay",
-                url: "https://news.mongabay.com/list/rewilding/"
-            },
-            {
-                id: 16,
-                title: "Kerala Mangrove Community Conservation",
-                description: "Local fishing communities in Kerala have protected and expanded mangrove forests, improving fish catches and storm protection.",
-                location: "Kerala, India",
-                lat: 10.8505,
-                lng: 76.2711,
-                category: "marine",
-                date: "2024-01-30",
-                source: "Mongabay India",
-                url: "https://india.mongabay.com/"
-            },
-            {
-                id: 17,
-                title: "Murray-Darling Basin Restoration",
-                description: "Australia's largest river system is seeing ecological recovery after environmental water releases brought wetlands back to life.",
-                location: "Murray-Darling Basin, Australia",
-                lat: -34.0000,
-                lng: 142.0000,
-                category: "wetland",
-                date: "2024-02-15",
-                source: "Mongabay",
-                url: "https://news.mongabay.com/list/australia/"
-            },
-            {
-                id: 18,
-                title: "Tigray Landscape Restoration Ethiopia",
-                description: "Community-led terracing and tree planting in Tigray has restored degraded hillsides, improving water retention and agricultural productivity.",
-                location: "Tigray, Ethiopia",
-                lat: 13.5000,
-                lng: 39.5000,
-                category: "grassland",
-                date: "2023-08-10",
-                source: "Mongabay",
-                url: "https://news.mongabay.com/list/ethiopia/"
-            }
-        ];
+        // Parse CSV
+        function parseCSV(text) {
+            const lines = text.trim().split('\n');
+            const headers = parseCSVLine(lines[0]);
+            const stories = [];
 
-        // Store all markers for filtering
+            for (let i = 1; i < lines.length; i++) {
+                const values = parseCSVLine(lines[i]);
+                if (values.length === headers.length) {
+                    const story = {};
+                    headers.forEach((header, index) => {
+                        story[header] = values[index];
+                    });
+                    // Convert lat/lng to numbers
+                    story.lat = parseFloat(story.lat);
+                    story.lng = parseFloat(story.lng);
+                    story.id = parseInt(story.id);
+                    stories.push(story);
+                }
+            }
+            return stories;
+        }
+
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current.trim());
+            return result;
+        }
+
+        let allStories = [];
         let markers = [];
         const markerGroup = L.layerGroup().addTo(map);
 
-        // Add markers to map
         function addMarkers(stories) {
             markerGroup.clearLayers();
             markers = [];
 
             stories.forEach(story => {
+                // Skip global studies with 0,0 coordinates
+                if (story.lat === 0 && story.lng === 0) return;
+
                 const marker = L.marker([story.lat, story.lng], {
-                    icon: createIcon(story.category)
+                    icon: createIcon(story.climate_impact)
                 });
 
+                const climateCategory = getClimateCategory(story.climate_impact);
                 const popupContent = `
                     <div class="popup-content">
-                        <span class="category">${story.category.charAt(0).toUpperCase() + story.category.slice(1)}</span>
+                        <span class="category">${story.category}</span>
+                        <span class="climate-tag">${formatClimateImpact(story.climate_impact)}</span>
                         <h3>${story.title}</h3>
                         <p class="meta">${story.location} | ${story.date}</p>
                         <p>${story.description}</p>
@@ -480,62 +348,59 @@
                 `;
 
                 marker.bindPopup(popupContent);
-                marker.category = story.category;
+                marker.storyData = story;
                 markers.push(marker);
                 markerGroup.addLayer(marker);
             });
+
+            updateStats();
         }
 
-        // Initial load
-        addMarkers(restorationStories);
+        function updateStats() {
+            document.getElementById('visibleCount').textContent = markerGroup.getLayers().length;
+            document.getElementById('totalCount').textContent = allStories.filter(s => s.lat !== 0 || s.lng !== 0).length;
+        }
 
-        // Category filter
-        document.getElementById('categoryFilter').addEventListener('change', function(e) {
-            const category = e.target.value;
+        function filterMarkers() {
+            const category = document.getElementById('categoryFilter').value;
+            const climate = document.getElementById('climateFilter').value;
+
             markerGroup.clearLayers();
 
             markers.forEach(marker => {
-                if (category === 'all' || marker.category === category) {
+                const story = marker.storyData;
+                const climateCategory = getClimateCategory(story.climate_impact);
+
+                const categoryMatch = category === 'all' || story.category === category;
+                const climateMatch = climate === 'all' || climateCategory === climate;
+
+                if (categoryMatch && climateMatch) {
                     markerGroup.addLayer(marker);
                 }
             });
-        });
 
-        // Function to fetch stories from Mongabay RSS (for future use with a proxy)
-        async function fetchMongabayStories() {
-            // Note: Direct RSS fetching is blocked by CORS
-            // You would need a server-side proxy or use a service like rss2json
-            // Example with rss2json (has free tier):
-            /*
-            const rssUrl = 'https://news.mongabay.com/feed/?post_type=post&feedtype=bulletpoints&topic=restoration';
-            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+            updateStats();
+        }
 
+        // Load CSV and initialize
+        async function init() {
             try {
-                const response = await fetch(apiUrl);
-                const data = await response.json();
-                console.log('Mongabay stories:', data.items);
-                // Process and geocode stories...
+                const response = await fetch('restoration_climate_stories.csv');
+                const text = await response.text();
+                allStories = parseCSV(text);
+                addMarkers(allStories);
+                console.log(`Loaded ${allStories.length} stories from CSV`);
             } catch (error) {
-                console.error('Error fetching RSS:', error);
-            }
-            */
-        }
-
-        // Add custom stories from URL parameters or localStorage
-        function loadCustomStories() {
-            const stored = localStorage.getItem('customStories');
-            if (stored) {
-                try {
-                    const custom = JSON.parse(stored);
-                    addMarkers([...restorationStories, ...custom]);
-                } catch (e) {
-                    console.error('Error loading custom stories:', e);
-                }
+                console.error('Error loading CSV:', error);
+                // Fallback message
+                document.querySelector('.stats').innerHTML = 'Error loading data. Make sure restoration_climate_stories.csv exists.';
             }
         }
 
-        // Initialize
-        loadCustomStories();
+        document.getElementById('categoryFilter').addEventListener('change', filterMarkers);
+        document.getElementById('climateFilter').addEventListener('change', filterMarkers);
+
+        init();
     </script>
 </body>
 </html>
