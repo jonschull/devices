@@ -1,0 +1,87 @@
+name: Wake CLCL
+
+# Trigger when files are pushed to clcl_outbox/
+on:
+  push:
+    paths:
+      - 'clcl_outbox/*.json'
+      - 'clcl_outbox/*.md'
+
+jobs:
+  send-wake-email:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need previous commit to find new files
+
+      - name: Find new task files
+        id: find-tasks
+        run: |
+          # Get files added in this commit
+          NEW_FILES=$(git diff --name-only --diff-filter=A HEAD~1 HEAD -- 'clcl_outbox/*.json' 'clcl_outbox/*.md' || echo "")
+
+          if [ -z "$NEW_FILES" ]; then
+            echo "No new task files found"
+            echo "has_tasks=false" >> $GITHUB_OUTPUT
+          else
+            echo "Found new task files:"
+            echo "$NEW_FILES"
+            echo "has_tasks=true" >> $GITHUB_OUTPUT
+
+            # Read the first new task file for the email
+            FIRST_FILE=$(echo "$NEW_FILES" | head -1)
+            echo "task_file=$FIRST_FILE" >> $GITHUB_OUTPUT
+
+            # Extract task content
+            if [[ "$FIRST_FILE" == *.json ]]; then
+              TASK=$(cat "$FIRST_FILE" | jq -r '.task // .subject // "Task from Cloud Claude"')
+              BODY=$(cat "$FIRST_FILE" | jq -r '.')
+            else
+              TASK=$(head -1 "$FIRST_FILE" | sed 's/^#* *//')
+              BODY=$(cat "$FIRST_FILE")
+            fi
+
+            echo "task_summary<<EOF" >> $GITHUB_OUTPUT
+            echo "$TASK" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+
+            # Store body in a file for the email step
+            echo "$BODY" > /tmp/email_body.txt
+          fi
+
+      - name: Send wake email to CLCL
+        if: steps.find-tasks.outputs.has_tasks == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.CLCL_SMTP_USERNAME }}
+          password: ${{ secrets.CLCL_SMTP_PASSWORD }}
+          to: claude@ecorestorationalliance.org
+          from: CLCL Bot <${{ secrets.CLCL_SMTP_USERNAME }}>
+          subject: "[CLCL-WAKE] ${{ steps.find-tasks.outputs.task_summary }}"
+          body: |
+            A Cloud Claude instance has requested CLCL assistance.
+
+            Task File: ${{ steps.find-tasks.outputs.task_file }}
+            Repository: ${{ github.repository }}
+            Commit: ${{ github.sha }}
+            Triggered by: ${{ github.actor }}
+
+            ---
+
+            ${{ steps.find-tasks.outputs.task_summary }}
+
+            ---
+
+            View full task: https://github.com/${{ github.repository }}/blob/${{ github.sha }}/${{ steps.find-tasks.outputs.task_file }}
+
+      - name: Log result
+        if: steps.find-tasks.outputs.has_tasks == 'true'
+        run: |
+          echo "✅ Wake email sent to CLCL"
+          echo "Task: ${{ steps.find-tasks.outputs.task_summary }}"

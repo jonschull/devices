@@ -1,0 +1,23 @@
+# CLCL Outbox
+
+This directory is used by cloud Claude instances to send messages to CLCL.
+
+Files placed here trigger a GitHub Action that emails CLCL, waking it up.
+
+## File Format
+
+JSON files with structure:
+```json
+{
+  "task": "Description of what CLCL should do",
+  "priority": "normal|urgent",
+  "from": "cloud-claude-session-id",
+  "context": "Any additional context"
+}
+```
+
+## Usage
+
+Cloud Claude writes a file here, commits, and pushes.
+GitHub Action sends email to claude@ecorestorationalliance.org.
+CLCL wakes up and processes the task.
