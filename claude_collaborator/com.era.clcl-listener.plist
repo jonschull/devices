@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.era.clcl-listener</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>/Users/admin/ERA_Admin/claude_collaborator/clcl_email_listener.py</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>CLCL_EMAIL</key>
+        <string>claude@ecorestorationalliance.org</string>
+        <key>CLCL_APP_PASSWORD</key>
+        <string>YOUR_APP_PASSWORD_HERE</string>
+        <key>CLCL_INBOX_DIR</key>
+        <string>/Users/admin/ERA_Admin/clcl_inbox</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/admin/ERA_Admin/claude_collaborator/clcl_listener.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/admin/ERA_Admin/claude_collaborator/clcl_listener_error.log</string>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/admin/ERA_Admin</string>
+</dict>
+</plist>
