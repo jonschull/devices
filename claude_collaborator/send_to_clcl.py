@@ -51,7 +51,7 @@ def create_task_file(repo_root, task, priority='normal', context=''):
     outbox = repo_root / 'clcl_outbox'
     outbox.mkdir(exist_ok=True)
 
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')  # Include microseconds
     session_id = get_session_id()
     filename = f"task_{timestamp}_{session_id[:8]}.json"
     filepath = outbox / filename

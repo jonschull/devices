@@ -25,9 +25,10 @@ from pathlib import Path
 
 try:
     from imapclient import IMAPClient
+    IMAPCLIENT_AVAILABLE = True
 except ImportError:
-    print("Error: imapclient not installed. Run: pip install imapclient")
-    sys.exit(1)
+    IMAPCLIENT_AVAILABLE = False
+    IMAPClient = None  # For type hints
 
 
 # Configuration
@@ -152,6 +153,10 @@ def handle_command(command):
 
 def listen():
     """Main IDLE loop - runs forever, reconnecting as needed."""
+    if not IMAPCLIENT_AVAILABLE:
+        print("[CLCL] ERROR: imapclient not installed. Run: pip install imapclient")
+        sys.exit(1)
+
     if not APP_PASSWORD:
         print("[CLCL] ERROR: CLCL_APP_PASSWORD environment variable not set")
         print("[CLCL] Generate an App Password at: Google Account -> Security -> App Passwords")
